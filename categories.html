@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Categories — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › Categories</div>
+    <h1>Browse Categories</h1>
+    <p>Lessons organized by life area. Find wisdom that speaks directly to your situation.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="cats-grid" id="cats-main"></div>
+  </div>
+</section>
+
+<!-- Selected Category Lessons -->
+<section class="section" id="cat-lessons-section" style="background:var(--white);display:none">
+  <div class="section-inner">
+    <div class="flex-between mb-6">
+      <h2 id="cat-lessons-title"></h2>
+      <button class="btn btn-outline btn-sm" id="cat-clear-btn">Clear</button>
+    </div>
+    <div class="lessons-grid" id="cat-lessons-grid"></div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const lessons = Lessons.all();
+  const catColors = { academic:'#2B6CB0', career:'#276749', business:'#B7791F', financial:'#9B2335', relationship:'#97266D', technology:'#434190', personal:'#553C9A', faith:'#744210' };
+  const catCounts = {};
+  lessons.forEach(l => { catCounts[l.category] = (catCounts[l.category] || 0) + 1; });
+
+  const params = new URLSearchParams(location.search);
+  const initCat = params.get('cat');
+
+  document.getElementById('cats-main').innerHTML = Object.entries(CAT_META).map(([key, m]) => `
+    <div class="cat-card" style="border-top-color:${catColors[key]||'#888'}" onclick="showCat('${key}')">
+      <div class="cat-icon">${catIcon(key, 24)}</div>
+      <h3>${m.label}</h3>
+      <div class="cat-count">${catCounts[key] || 0} lesson${catCounts[key] !== 1 ? 's':''}</div>
+      <div style="margin-top:12px"><span class="btn btn-outline btn-sm" style="border-color:${catColors[key]};color:${catColors[key]}">Browse →</span></div>
+    </div>
+  `).join('');
+
+  if (initCat) showCat(initCat);
+
+  document.getElementById('cat-clear-btn').addEventListener('click', () => {
+    document.getElementById('cat-lessons-section').style.display = 'none';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+function showCat(key) {
+  const m = catMeta(key);
+  const catLessons = Lessons.all().filter(l => l.category === key);
+  document.getElementById('cat-lessons-title').textContent = m.label + ' Lessons';
+  const grid = document.getElementById('cat-lessons-grid');
+  if (catLessons.length === 0) {
+    grid.innerHTML = `<div class="no-results"><p>No lessons in this category yet. <a href="share.html" style="color:var(--teal)">Be the first!</a></p></div>`;
+  } else {
+    grid.innerHTML = catLessons.map(lessonCardHTML).join('');
+    grid.querySelectorAll('.lesson-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', e => {
+        if (e.target.closest('.reaction-bar') || e.target.closest('.reaction-btn')) return;
+        window.location.href = `lesson.html?id=${card.dataset.id}`;
+      });
+    });
+  }
+  document.getElementById('cat-lessons-section').style.display = 'block';
+  document.getElementById('cat-lessons-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

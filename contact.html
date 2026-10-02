@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › Contact</div>
+    <h1>Contact Us</h1>
+    <p>Have feedback, a question, or want to collaborate? We'd love to hear from you.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+    <div class="contact-layout">
+
+      <!-- Info Card -->
+      <div class="contact-info-card">
+        <h3>Get in Touch</h3>
+        <p>We're a small team passionate about turning experiences into lessons. Reach out — we read every message.</p>
+
+        <div class="contact-item">
+          <div class="contact-ico" data-icon="mail" data-icon-size="24"></div>
+          <div>
+            <div class="contact-label">Email</div>
+            <div class="contact-val">hello@lessonvault.com</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-ico" data-icon="map-pin" data-icon-size="24"></div>
+          <div>
+            <div class="contact-label">Location</div>
+            <div class="contact-val">University of Batangas, Lipa City, Philippines</div>
+          </div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-ico" data-icon="clock" data-icon-size="24"></div>
+          <div>
+            <div class="contact-label">Response Time</div>
+            <div class="contact-val">Within 24–48 hours</div>
+          </div>
+        </div>
+
+        <div class="divider" style="border-color:rgba(255,255,255,0.1)"></div>
+
+        <h4 style="color:var(--white);margin-bottom:12px">Quick Links</h4>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <a href="about.html" style="color:var(--teal3);font-size:0.88rem">→ About Lesson Vault</a>
+          <a href="share.html" style="color:var(--teal3);font-size:0.88rem">→ Share Your Lesson</a>
+          <a href="explore.html" style="color:var(--teal3);font-size:0.88rem">→ Explore the Vault</a>
+        </div>
+      </div>
+
+      <!-- Form Card -->
+      <div class="form-card">
+        <h2 style="margin-bottom:6px">Send a Message</h2>
+        <p style="margin-bottom:24px">Fill out the form below and we'll get back to you as soon as possible.</p>
+
+        <form id="contact-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Your Name <span class="req">*</span></label>
+              <input name="name" type="text" class="form-control" placeholder="Juan dela Cruz" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email Address <span class="req">*</span></label>
+              <input name="email" type="email" class="form-control" placeholder="you@email.com" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Subject <span class="req">*</span></label>
+            <select name="subject" class="form-control" required>
+              <option value="">— Choose a subject —</option>
+              <option value="feedback">General Feedback</option>
+              <option value="bug">Report a Bug</option>
+              <option value="content">Content Issue</option>
+              <option value="collaboration">Collaboration / Partnership</option>
+              <option value="feature">Feature Request</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Message <span class="req">*</span></label>
+            <textarea name="message" class="form-control" rows="6"
+              placeholder="Tell us what's on your mind…" required
+              maxlength="1500" data-maxlength="1500"></textarea>
+            <div class="char-counter"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="check-label">
+              <input type="checkbox" name="newsletter">
+              Subscribe to occasional updates from Lesson Vault
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-gold">Send Message</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div style="margin-top:60px">
+      <h2 style="margin-bottom:28px">Frequently Asked Questions</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px" id="faq-grid"></div>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+const FAQS = [
+  { q: 'Is Lesson Vault free to use?', a: 'Yes! Lesson Vault is completely free. Create an account, browse lessons, and share your own experiences at no cost.' },
+  { q: 'Can I share a lesson anonymously?', a: 'Absolutely. When submitting a lesson, simply check the "Share anonymously" option and your name will not appear on the post.' },
+  { q: 'How do I edit or delete my submission?', a: 'Go to your Dashboard, find the lesson under "My Lessons", and use the Edit or Delete buttons. You can update your story anytime.' },
+  { q: 'What do the reaction buttons do?', a: 'Tap an emotion — Helpful, Inspired, Grateful, Moved, Hopeful, and more — to share how a lesson made you feel. You can pick one reaction per lesson, and change it anytime.' },
+  { q: 'Is there content moderation?', a: 'Yes. Our team reviews flagged content. We remove submissions that violate our community guidelines — hate speech, spam, and inappropriate content.' },
+  { q: 'Can educational institutions use this platform?', a: 'Yes! Teachers and facilitators are welcome to use Lesson Vault as a real-world resource. Contact us for partnership or integration opportunities.' },
+];
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('faq-grid').innerHTML = FAQS.map(f => `
+    <div class="form-card" style="border-left:4px solid var(--teal)">
+      <h4 style="color:var(--teal);margin-bottom:8px">${f.q}</h4>
+      <p style="font-size:0.9rem">${f.a}</p>
+    </div>
+  `).join('');
+
+  document.getElementById('contact-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const data = new FormData(e.target);
+    if (!data.get('name') || !data.get('email') || !data.get('subject') || !data.get('message')) {
+      showToast('Please fill in all required fields.', 'error'); return;
+    }
+    showToast('Message sent! We\'ll get back to you within 24–48 hours.', 'success');
+    e.target.reset();
+  });
+});
+</script>
+</body>
+</html>

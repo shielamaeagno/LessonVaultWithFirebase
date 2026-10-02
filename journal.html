@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reflection Journal — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/journal.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › Journal</div>
+    <h1>My Reflection Journal</h1>
+    <p>A private space to write what a lesson means to you and what you will do about it. Saved in the cloud (Firebase Firestore), visible only to you.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+    <div id="jr-root"><div class="jr-grid"><div class="jr-skel"></div><div class="jr-skel"></div><div class="jr-skel"></div></div></div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<!-- Create / Edit modal -->
+<div class="modal-overlay" id="jr-form-modal">
+  <div class="modal jr-modal">
+    <div class="modal-header">
+      <h2 id="jr-form-title">New Entry</h2>
+      <button class="modal-close" onclick="closeModal('jr-form-modal')" aria-label="Close"></button>
+    </div>
+    <form id="jr-form" novalidate>
+      <div class="form-group">
+        <label class="form-label" for="jr-title">Title<span class="req">*</span></label>
+        <input id="jr-title" class="form-control" maxlength="100" placeholder="e.g. What I will change about my study habits">
+        <div class="jr-field-err" data-err="title"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="jr-lesson">Linked lesson (optional)</label>
+        <select id="jr-lesson" class="form-control"><option value="">— None —</option></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="jr-reflection">My reflection<span class="req">*</span></label>
+        <textarea id="jr-reflection" class="form-control" rows="5" maxlength="2000" placeholder="What does this lesson mean to you?"></textarea>
+        <div class="jr-count"><span id="jr-ref-count">0</span>/2000</div>
+        <div class="jr-field-err" data-err="reflection"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="jr-action">Action step (optional)</label>
+        <input id="jr-action" class="form-control" maxlength="300" placeholder="One small thing I will do this week">
+        <div class="jr-field-err" data-err="actionStep"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label" for="jr-mood">Mood<span class="req">*</span></label>
+          <select id="jr-mood" class="form-control"></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="jr-status">Status<span class="req">*</span></label>
+          <select id="jr-status" class="form-control"></select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="jr-tags">Tags (comma separated, max 5)</label>
+        <input id="jr-tags" class="form-control" placeholder="study, discipline, faith">
+        <div class="jr-field-err" data-err="tags"></div>
+      </div>
+      <div class="jr-field-err" data-err="form"></div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="btn btn-outline btn-full" onclick="closeModal('jr-form-modal')">Cancel</button>
+        <button type="submit" class="btn btn-gold btn-full" id="jr-save-btn">Save Entry</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete confirm -->
+<div class="modal-overlay" id="jr-delete-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>Delete Entry</h2>
+      <button class="modal-close" onclick="closeModal('jr-delete-modal')" aria-label="Close"></button>
+    </div>
+    <p style="margin-bottom:24px;color:#4A5568">Delete this journal entry? This cannot be undone.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline btn-full" onclick="closeModal('jr-delete-modal')">Cancel</button>
+      <button class="btn btn-danger btn-full" id="jr-confirm-delete">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="js/journal.js"></script>
+</body>
+</html>

@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+<div id="admin-content"></div>
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+whenAuthReady(() => {
+  if (!Auth.isAdmin()) {
+    document.getElementById('admin-content').innerHTML = `
+      <div style="max-width:480px;margin:80px auto;padding:0 24px;text-align:center">
+        ${emptyStateIcon('shield', 40)}
+        <h2 style="margin-bottom:8px">Admin Access Required</h2>
+        <p style="margin-bottom:24px;color:#4A5568">Log in with an administrator account to access this panel.</p>
+        <button class="btn btn-gold" onclick="openModal('auth-modal')">Login</button>
+        <p style="margin-top:16px;font-size:0.82rem;color:var(--muted)">admin@lessonvault.com / admin123</p>
+      </div>`;
+    return;
+  }
+  renderAdmin('overview');
+});
+
+function renderAdmin(activeTab) {
+  const stats = Admin.stats();
+  const settings = Moderation.settings();
+
+  document.getElementById('admin-content').innerHTML = `
+    <div class="admin-banner">
+      <div class="admin-banner-inner">
+        <h1>Admin Control Panel</h1>
+        <p>Full access to manage lessons, comments, users, and automated content moderation.</p>
+      </div>
+    </div>
+    <div class="dashboard-layout admin-layout">
+      <aside class="dashboard-sidebar admin-sidebar">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar" style="background:var(--gold)">${icon('shield', 24)}</div>
+          <div class="sidebar-name">${escHtml(Auth.current().username)}</div>
+          <div class="sidebar-email">Administrator</div>
+        </div>
+        <nav class="sidebar-nav">
+          ${adminNavLink('overview', 'layout-dashboard', 'Overview', activeTab)}
+          ${adminNavLink('lessons', 'file-text', 'All Lessons', activeTab)}
+          ${adminNavLink('comments', 'message-square', 'All Comments', activeTab)}
+          ${adminNavLink('users', 'users', 'Users', activeTab)}
+          ${adminNavLink('queue', 'alert-triangle', `Moderation Queue (${stats.flaggedLessons + stats.flaggedComments})`, activeTab)}
+          ${adminNavLink('settings', 'settings', 'Moderation Settings', activeTab)}
+          ${adminNavLink('log', 'clipboard-list', 'Activity Log', activeTab)}
+          <a href="index.html"><span class="nav-ico">${icon('home', 16)}</span> Back to Site</a>
+        </nav>
+      </aside>
+      <main class="dashboard-main admin-main">
+        <div id="admin-tab-overview" class="dash-tab-panel ${activeTab !== 'overview' ? 'hidden' : ''}">${renderOverview(stats)}</div>
+        <div id="admin-tab-lessons" class="dash-tab-panel ${activeTab !== 'lessons' ? 'hidden' : ''}">${renderLessonsTab()}</div>
+        <div id="admin-tab-comments" class="dash-tab-panel ${activeTab !== 'comments' ? 'hidden' : ''}">${renderCommentsTab()}</div>
+        <div id="admin-tab-users" class="dash-tab-panel ${activeTab !== 'users' ? 'hidden' : ''}">${renderUsersTab()}</div>
+        <div id="admin-tab-queue" class="dash-tab-panel ${activeTab !== 'queue' ? 'hidden' : ''}">${renderQueueTab()}</div>
+        <div id="admin-tab-settings" class="dash-tab-panel ${activeTab !== 'settings' ? 'hidden' : ''}">${renderSettingsTab(settings)}</div>
+        <div id="admin-tab-log" class="dash-tab-panel ${activeTab !== 'log' ? 'hidden' : ''}">${renderLogTab()}</div>
+      </main>
+    </div>`;
+
+  bindAdminEvents(activeTab);
+  if (typeof initDecorativeIcons === 'function') initDecorativeIcons();
+}
+
+function adminNavLink(id, iconName, label, active) {
+  return `<a href="#" class="${active === id ? 'active' : ''}" onclick="renderAdmin('${id}');return false"><span class="nav-ico">${icon(iconName, 16)}</span> ${label}</a>`;
+}
+
+function renderOverview(stats) {
+  return `
+    <h2 style="margin-bottom:20px">System Overview</h2>
+    <div class="dash-stats">
+      <div class="dash-stat-card"><div class="dash-stat-num">${stats.activeLessons}</div><div class="dash-stat-lbl">Active Lessons</div></div>
+      <div class="dash-stat-card gold"><div class="dash-stat-num">${stats.flaggedLessons}</div><div class="dash-stat-lbl">Flagged Lessons</div></div>
+      <div class="dash-stat-card"><div class="dash-stat-num">${stats.totalComments}</div><div class="dash-stat-lbl">Comments</div></div>
+      <div class="dash-stat-card green"><div class="dash-stat-num">${stats.totalUsers}</div><div class="dash-stat-lbl">Users</div></div>
+    </div>
+    <div class="form-card" style="margin-top:24px">
+      <h3 style="margin-bottom:12px">Automated Moderation</h3>
+      <p style="font-size:0.9rem;margin-bottom:16px">Scan all existing lessons and comments for malicious, spam, or off-topic content. Items that fail checks are auto-deleted or flagged based on your settings.</p>
+      <button class="btn btn-gold" onclick="runFullScan()">${icon('search', 14, 'lv-icon icon-inline')} Run Full Content Scan</button>
+      <span id="scan-result" style="margin-left:12px;font-size:0.88rem;color:var(--muted)"></span>
+    </div>
+    <div class="form-card" style="margin-top:20px">
+      <h3 style="margin-bottom:12px">Quick Actions</h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-outline btn-sm" onclick="renderAdmin('queue')">${icon('alert-triangle', 14, 'lv-icon icon-inline')} Review Flagged (${stats.flaggedLessons + stats.flaggedComments})</button>
+        <button class="btn btn-outline btn-sm" onclick="renderAdmin('settings')">${icon('settings', 14, 'lv-icon icon-inline')} Moderation Settings</button>
+        <button class="btn btn-outline btn-sm" onclick="renderAdmin('log')">${icon('clipboard-list', 14, 'lv-icon icon-inline')} View Activity Log</button>
+      </div>
+    </div>`;
+}
+
+function renderLessonsTab() {
+  const lessons = Lessons.all({ includeFlagged: true });
+  return `
+    <div class="flex-between mb-6">
+      <h2>All Lessons (${lessons.length})</h2>
+      <select class="filter-select" id="admin-lesson-filter" onchange="filterAdminLessons()">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="flagged">Flagged</option>
+      </select>
+    </div>
+    <div class="admin-table-wrap" id="admin-lessons-list">
+      ${lessons.map(adminLessonRow).join('') || '<p class="text-muted">No lessons found.</p>'}
+    </div>`;
+}
+
+function adminLessonRow(l) {
+  const m = catMeta(l.category);
+  const status = l.status || 'active';
+  return `<div class="admin-row" data-status="${status}">
+    <div class="admin-row-main">
+      <div class="admin-row-title">${escHtml(l.title)}</div>
+      <div class="admin-row-meta">
+        <span class="card-cat-badge ${m.cls}">${catBadgeInner(m)}</span>
+        <span class="mod-badge ${status}">${status}</span>
+        <span>${icon('user', 14, 'lv-icon icon-inline')} ${escHtml(l.author)}</span>
+        <span>${icon('calendar', 14, 'lv-icon icon-inline')} ${l.datePosted}</span>
+        <span>${l.helpful} helpful</span>
+      </div>
+      ${l.moderationReason ? `<div class="admin-row-reason">${icon('alert-triangle', 14, 'lv-icon icon-inline')} ${escHtml(l.moderationReason)}</div>` : ''}
+    </div>
+    <div class="admin-row-actions">
+      <a href="lesson.html?id=${l.id}" class="btn btn-outline btn-sm" target="_blank">View</a>
+      ${status === 'flagged' ? `<button class="btn btn-sm btn-gold" onclick="approveLesson('${l.id}')">${icon('check', 14, 'lv-icon icon-inline')} Approve</button>` : ''}
+      <button class="btn btn-danger btn-sm" onclick="adminDeleteLesson('${l.id}')">${icon('trash-2', 14, 'lv-icon icon-inline')} Delete</button>
+    </div>
+  </div>`;
+}
+
+function renderCommentsTab() {
+  const comments = Comments.all({ includeFlagged: true });
+  return `
+    <h2 style="margin-bottom:20px">All Comments (${comments.length})</h2>
+    <div class="admin-table-wrap">
+      ${comments.map(c => `
+        <div class="admin-row">
+          <div class="admin-row-main">
+            <div class="admin-row-title">${escHtml(c.text.slice(0, 120))}${c.text.length > 120 ? '…' : ''}</div>
+            <div class="admin-row-meta">
+              <span class="mod-badge ${c.status || 'active'}">${c.status || 'active'}</span>
+              <span>${icon('user', 14, 'lv-icon icon-inline')} ${escHtml(c.author)}</span>
+              <span>${icon('calendar', 14, 'lv-icon icon-inline')} ${c.datePosted}</span>
+              <span>Lesson: ${c.lessonId}</span>
+            </div>
+          </div>
+          <div class="admin-row-actions">
+            ${c.status === 'flagged' ? `<button class="btn btn-sm btn-gold" onclick="approveComment('${c.id}')">${icon('check', 14, 'lv-icon icon-inline')} Approve</button>` : ''}
+            <button class="btn btn-danger btn-sm" onclick="adminDeleteComment('${c.id}')">${icon('trash-2', 14, 'lv-icon icon-inline')} Delete</button>
+          </div>
+        </div>`).join('') || '<p class="text-muted">No comments.</p>'}
+    </div>`;
+}
+
+function renderUsersTab() {
+  const users = Users.all().filter(u => u.role !== 'admin');
+  return `
+    <h2 style="margin-bottom:8px">User Management (${users.length})</h2>
+    <p class="text-muted" style="margin-bottom:20px;font-size:0.9rem">Remove a user's posts and comments only, or delete the user entirely so they no longer appear anywhere in the app.</p>
+    <div class="admin-table-wrap">
+      ${users.length ? users.map(u => {
+        const lessonCount = Lessons.all({ includeFlagged: true }).filter(l => l.userId === u.id).length;
+        const commentCount = (DB.get('comments') || []).filter(c => c.userId === u.id).length;
+        return `
+        <div class="admin-row">
+          <div class="admin-row-main">
+            <div class="admin-row-title">${escHtml(u.username)} ${u.banned ? '<span class="mod-badge flagged">Banned</span>' : ''}</div>
+            <div class="admin-row-meta">
+              <span>${escHtml(u.email)}</span>
+              <span>Joined ${u.joined}</span>
+              <span>${icon('file-text', 14, 'lv-icon icon-inline')} ${lessonCount} lesson${lessonCount !== 1 ? 's' : ''}</span>
+              <span>${icon('message-square', 14, 'lv-icon icon-inline')} ${commentCount} comment${commentCount !== 1 ? 's' : ''}</span>
+              <span>${icon('users', 14, 'lv-icon icon-inline')} ${(u.connections || []).length} connection${(u.connections || []).length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn btn-sm btn-outline" onclick="adminClearUserContent('${u.id}')" ${!lessonCount && !commentCount ? 'disabled' : ''}>${icon('trash-2', 14, 'lv-icon icon-inline')} Clear Content</button>
+            <button class="btn btn-sm ${u.banned ? 'btn-outline' : ''}" style="${u.banned ? '' : 'background:#FED7D7;color:#9B2335'}" onclick="toggleBan('${u.id}', ${!u.banned})">${u.banned ? 'Unban' : 'Ban'}</button>
+            <button class="btn btn-danger btn-sm" onclick="adminDeleteUser('${u.id}')">Remove User</button>
+          </div>
+        </div>`;
+      }).join('') : '<p class="text-muted">No users to manage.</p>'}
+    </div>`;
+}
+
+function renderQueueTab() {
+  const flaggedLessons = Lessons.all({ includeFlagged: true }).filter(l => l.status === 'flagged');
+  const flaggedComments = Comments.all({ includeFlagged: true }).filter(c => c.status === 'flagged');
+  return `
+    <h2 style="margin-bottom:8px">Moderation Queue</h2>
+    <p class="text-muted" style="margin-bottom:20px;font-size:0.9rem">Content flagged by auto-moderation or held for review. Approve to publish or delete to remove.</p>
+    <h3 style="margin-bottom:12px">Flagged Lessons (${flaggedLessons.length})</h3>
+    <div class="admin-table-wrap" style="margin-bottom:28px">
+      ${flaggedLessons.length ? flaggedLessons.map(adminLessonRow).join('') : '<p class="text-muted" style="padding:16px">No flagged lessons.</p>'}
+    </div>
+    <h3 style="margin-bottom:12px">Flagged Comments (${flaggedComments.length})</h3>
+    <div class="admin-table-wrap">
+      ${flaggedComments.length ? flaggedComments.map(c => `
+        <div class="admin-row">
+          <div class="admin-row-main">
+            <div class="admin-row-title">${escHtml(c.text)}</div>
+            <div class="admin-row-meta"><span>${icon('user', 14, 'lv-icon icon-inline')} ${escHtml(c.author)}</span>${c.moderationReason ? `<span>${icon('alert-triangle', 14, 'lv-icon icon-inline')} ${escHtml(c.moderationReason)}</span>` : ''}</div>
+          </div>
+          <div class="admin-row-actions">
+            <button class="btn btn-sm btn-gold" onclick="approveComment('${c.id}')">${icon('check', 14, 'lv-icon icon-inline')} Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="adminDeleteComment('${c.id}')">${icon('trash-2', 14, 'lv-icon icon-inline')} Delete</button>
+          </div>
+        </div>`).join('') : '<p class="text-muted" style="padding:16px">No flagged comments.</p>'}
+    </div>`;
+}
+
+function renderSettingsTab(settings) {
+  return `
+    <h2 style="margin-bottom:20px">Moderation Settings</h2>
+    <div class="form-card" style="max-width:640px">
+      <div class="form-group">
+        <label class="check-label"><input type="checkbox" id="set-auto-delete" ${settings.autoDelete ? 'checked' : ''}> Auto-delete malicious, spam, and unrelated content</label>
+        <div class="form-hint" style="margin-left:28px">Rejected posts are never published and are logged.</div>
+      </div>
+      <div class="form-group">
+        <label class="check-label"><input type="checkbox" id="set-auto-flag" ${settings.autoFlag ? 'checked' : ''}> Auto-flag suspicious content for review</label>
+        <div class="form-hint" style="margin-left:28px">Borderline content is hidden from public until you approve it.</div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Min. Experience Length</label>
+          <input type="number" class="form-control" id="set-min-exp" value="${settings.minExperienceLength}" min="10">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Min. Lesson Length</label>
+          <input type="number" class="form-control" id="set-min-lesson" value="${settings.minLessonLength}" min="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Blocked Terms (one per line)</label>
+        <textarea class="form-control" id="set-blocklist" rows="6">${settings.blocklist.join('\n')}</textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Spam Patterns (one per line)</label>
+        <textarea class="form-control" id="set-spam" rows="5">${settings.spamPatterns.join('\n')}</textarea>
+      </div>
+      <button class="btn btn-gold" onclick="saveModSettings()">${icon('save', 14, 'lv-icon icon-inline')} Save Settings</button>
+    </div>`;
+}
+
+function renderLogTab() {
+  const logs = Moderation.logs();
+  return `
+    <h2 style="margin-bottom:20px">Activity Log (${logs.length})</h2>
+    <div class="admin-table-wrap admin-log">
+      ${logs.length ? logs.map(log => `
+        <div class="admin-log-item">
+          <div class="admin-log-head">
+            <span class="mod-badge ${log.action.includes('delete') ? 'flagged' : log.action.includes('flag') ? 'flagged' : 'active'}">${escHtml(log.action)}</span>
+            <span class="text-muted" style="font-size:0.78rem">${(parseTimestamp(log.date) || new Date()).toLocaleString()}</span>
+          </div>
+          <div style="font-size:0.88rem">
+            <strong>${escHtml(log.type || '')}</strong>
+            ${log.title ? ` — ${escHtml(log.title)}` : ''}
+            ${log.text ? ` — "${escHtml(log.text)}"` : ''}
+            ${log.username ? ` — @${escHtml(log.username)}` : ''}
+            ${log.by ? ` <span class="text-muted">by ${escHtml(log.by)}</span>` : ''}
+          </div>
+          ${log.reason ? `<div class="admin-row-reason">${escHtml(log.reason)}</div>` : ''}
+          ${log.reasons ? `<div class="admin-row-reason">${escHtml(log.reasons.join('; '))}</div>` : ''}
+        </div>`).join('') : '<p class="text-muted">No activity yet.</p>'}
+    </div>`;
+}
+
+function bindAdminEvents(tab) { /* inline handlers used */ }
+
+function runFullScan() {
+  const result = Moderation.runFullScan();
+  const el = document.getElementById('scan-result');
+  if (el) el.textContent = `Done — ${result.removed} removed, ${result.flagged} flagged.`;
+  showToast(`Scan complete: ${result.removed} removed, ${result.flagged} flagged.`, 'success');
+  setTimeout(() => renderAdmin('overview'), 1500);
+}
+
+function approveLesson(id) {
+  Admin.approveLesson(id);
+  showToast('Lesson approved and published.', 'success');
+  renderAdmin(document.querySelector('.admin-sidebar .active') ? getActiveTab() : 'queue');
+}
+
+function approveComment(id) {
+  Admin.approveComment(id);
+  showToast('Comment approved.', 'success');
+  renderAdmin(getActiveTab());
+}
+
+function adminDeleteLesson(id) {
+  if (!confirm('Permanently delete this lesson and its comments?')) return;
+  Admin.removeLesson(id, 'admin');
+  showToast('Lesson deleted.', 'success');
+  renderAdmin(getActiveTab());
+}
+
+function adminDeleteComment(id) {
+  if (!confirm('Delete this comment?')) return;
+  Admin.removeComment(id, 'admin');
+  showToast('Comment deleted.', 'success');
+  renderAdmin(getActiveTab());
+}
+
+function adminClearUserContent(id) {
+  const name = Users.byId(id)?.username || 'this user';
+  if (!confirm(`Remove all lessons and comments by "${name}"? Their account will remain but all content will be deleted.`)) return;
+  if (Admin.removeUserContent(id)) {
+    showToast('User content removed.', 'success');
+    renderAdmin('users');
+  } else showToast('Could not remove content.', 'error');
+}
+
+function adminDeleteUser(id) {
+  const name = Users.byId(id)?.username || 'this user';
+  if (!confirm(`Permanently remove "${name}" from the system?\n\nThis deletes their account, all posts, comments, and removes them from the People page.`)) return;
+  if (Admin.removeUser(id)) {
+    showToast('User and all their content removed.', 'success');
+    renderAdmin('users');
+  } else showToast('Could not remove user.', 'error');
+}
+
+function toggleBan(id, banned) {
+  Admin.banUser(id, banned);
+  showToast(banned ? 'User banned.' : 'User unbanned.', banned ? 'info' : 'success');
+  renderAdmin('users');
+}
+
+function saveModSettings() {
+  Moderation.saveSettings({
+    autoDelete: document.getElementById('set-auto-delete').checked,
+    autoFlag: document.getElementById('set-auto-flag').checked,
+    minExperienceLength: parseInt(document.getElementById('set-min-exp').value) || 40,
+    minLessonLength: parseInt(document.getElementById('set-min-lesson').value) || 20,
+    blocklist: document.getElementById('set-blocklist').value.split('\n').map(s => s.trim()).filter(Boolean),
+    spamPatterns: document.getElementById('set-spam').value.split('\n').map(s => s.trim()).filter(Boolean),
+  });
+  showToast('Moderation settings saved.', 'success');
+}
+
+function filterAdminLessons() {
+  const val = document.getElementById('admin-lesson-filter').value;
+  document.querySelectorAll('#admin-lessons-list .admin-row').forEach(row => {
+    row.style.display = (val === 'all' || row.dataset.status === val) ? '' : 'none';
+  });
+}
+
+function getActiveTab() {
+  const active = document.querySelector('.admin-sidebar .sidebar-nav a.active');
+  if (!active) return 'overview';
+  const onclick = active.getAttribute('onclick') || '';
+  const m = onclick.match(/renderAdmin\('(\w+)'\)/);
+  return m ? m[1] : 'overview';
+}
+</script>
+</body>
+</html>

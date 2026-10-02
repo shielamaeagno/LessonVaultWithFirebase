@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Explore Lessons — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › Explore</div>
+    <h1>Explore Lessons</h1>
+    <p>Browse all shared experiences and the lessons they carry. Search, filter, and discover wisdom from real people.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+
+    <!-- Search + Filter -->
+    <div class="search-wrap">
+      <div class="search-field" style="flex:2">
+        <span class="search-icon" data-icon="search" data-icon-size="18"></span>
+        <input type="text" id="exp-search" placeholder='Search by title, lesson, keyword…'>
+      </div>
+      <select class="filter-select" id="exp-cat">
+        <option value="all">All Categories</option>
+        <option value="academic">Academic</option>
+        <option value="career">Career</option>
+        <option value="business">Business</option>
+        <option value="financial">Financial</option>
+        <option value="relationship">Relationship</option>
+        <option value="technology">Technology</option>
+        <option value="personal">Personal Growth</option>
+        <option value="faith">Faith & Spirituality</option>
+      </select>
+      <select class="filter-select" id="exp-sort">
+        <option value="new">Newest First</option>
+        <option value="helpful">Most Reactions</option>
+        <option value="old">Oldest First</option>
+      </select>
+      <button class="btn btn-primary" id="exp-search-btn">Search</button>
+      <button class="btn btn-outline btn-sm" id="exp-clear-btn">Clear</button>
+    </div>
+
+    <div class="filter-checks">
+      <label><input type="checkbox" id="f-has-video"> Has Video</label>
+      <label><input type="checkbox" id="f-has-verses"> Has Bible Verses</label>
+      <label><input type="checkbox" id="f-has-advice"> Has Advice Video</label>
+    </div>
+
+    <!-- Results header -->
+    <div class="flex-between mb-6">
+      <p id="results-count" class="text-muted" style="font-size:0.88rem"></p>
+    </div>
+
+    <!-- Grid -->
+    <div class="lessons-grid" id="explore-grid"></div>
+    <div id="no-results" class="no-results hidden">
+      <div class="empty-ico" data-icon="search" data-icon-size="40"></div>
+      <p>No lessons found matching your search.<br>Try different keywords or <a href="share.html" style="color:var(--teal)">share the first one!</a></p>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(location.search);
+  const initQ   = params.get('q')   || '';
+  const initCat = params.get('cat') || 'all';
+  const initSort = params.get('sort') || 'new';
+
+  const searchInput = document.getElementById('exp-search');
+  const catSelect   = document.getElementById('exp-cat');
+  const sortSelect  = document.getElementById('exp-sort');
+
+  searchInput.value = initQ;
+  catSelect.value   = initCat;
+  sortSelect.value  = initSort;
+
+  function render() {
+    const q    = searchInput.value.trim();
+    const cat  = catSelect.value;
+    const sort = sortSelect.value;
+    const filters = {
+      hasVideo: document.getElementById('f-has-video').checked,
+      hasVerses: document.getElementById('f-has-verses').checked,
+      hasAdviceVideo: document.getElementById('f-has-advice').checked,
+    };
+    let results = Lessons.search(q, cat, filters);
+
+    if (sort === 'helpful') results.sort((a,b) => b.helpful - a.helpful);
+    else if (sort === 'old') results.sort((a,b) => (parseTimestamp(a.datePosted)?.getTime() || 0) - (parseTimestamp(b.datePosted)?.getTime() || 0));
+    else results.sort((a,b) => (parseTimestamp(b.datePosted)?.getTime() || 0) - (parseTimestamp(a.datePosted)?.getTime() || 0));
+
+    const grid = document.getElementById('explore-grid');
+    const noRes = document.getElementById('no-results');
+    document.getElementById('results-count').textContent = `Showing ${results.length} lesson${results.length !== 1 ? 's':''}`;
+
+    if (results.length === 0) {
+      grid.innerHTML = '';
+      noRes.classList.remove('hidden');
+    } else {
+      noRes.classList.add('hidden');
+      grid.innerHTML = results.map(lessonCardHTML).join('');
+      grid.querySelectorAll('.lesson-card').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', e => {
+          if (e.target.closest('.reaction-bar') || e.target.closest('.reaction-btn')) return;
+          window.location.href = `lesson.html?id=${card.dataset.id}`;
+        });
+      });
+    }
+  }
+
+  document.getElementById('exp-search-btn').addEventListener('click', render);
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') render(); });
+  catSelect.addEventListener('change', render);
+  sortSelect.addEventListener('change', render);
+  ['f-has-video', 'f-has-verses', 'f-has-advice'].forEach(id => {
+    document.getElementById(id).addEventListener('change', render);
+  });
+  document.getElementById('exp-clear-btn').addEventListener('click', () => {
+    searchInput.value = '';
+    catSelect.value = 'all';
+    sortSelect.value = 'new';
+    document.getElementById('f-has-video').checked = false;
+    document.getElementById('f-has-verses').checked = false;
+    document.getElementById('f-has-advice').checked = false;
+    render();
+  });
+
+  render();
+  document.addEventListener('lv:reactions-updated', render);
+  document.addEventListener('lv:data-ready', render);
+  whenDataReady({ forceRefresh: true }).then(render).catch(() => {});
+});
+</script>
+</body>
+</html>

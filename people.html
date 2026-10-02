@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect with People — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › People</div>
+    <h1>Connect with People</h1>
+    <p>Find others who share your interests. Connect, learn from their experiences, and grow together through lessons and scripture.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+
+    <div class="search-wrap">
+      <div class="search-field" style="flex:2">
+        <span class="search-icon" data-icon="search" data-icon-size="18"></span>
+        <input type="text" id="people-search" placeholder="Search by name, bio, or interest…">
+      </div>
+      <select class="filter-select" id="people-interest">
+        <option value="all">All Interests</option>
+        <option value="academic">Academic</option>
+        <option value="career">Career</option>
+        <option value="business">Business</option>
+        <option value="financial">Financial</option>
+        <option value="relationship">Relationship</option>
+        <option value="technology">Technology</option>
+        <option value="personal">Personal Growth</option>
+        <option value="faith">Faith & Spirituality</option>
+      </select>
+      <select class="filter-select" id="people-status">
+        <option value="all">Everyone</option>
+        <option value="connected">My Connections</option>
+        <option value="not-connected">Not Connected</option>
+      </select>
+      <button class="btn btn-primary" id="people-search-btn">Search</button>
+      <button class="btn btn-outline btn-sm" id="people-clear-btn">Clear</button>
+    </div>
+
+    <div id="login-hint" class="hidden" style="background:#FFFBEB;border:1px solid var(--gold);border-radius:var(--radius);padding:14px 20px;margin-bottom:20px;font-size:0.9rem">
+      <a href="#" onclick="openModal('auth-modal');return false" style="color:var(--teal);font-weight:600">Log in</a> to connect with others and build your network.
+    </div>
+
+    <div class="flex-between mb-6">
+      <p id="people-count" class="text-muted" style="font-size:0.88rem"></p>
+      <p id="connected-count" class="text-muted" style="font-size:0.88rem"></p>
+    </div>
+
+    <div class="people-grid" id="people-grid"></div>
+    <div id="no-people" class="no-results hidden">
+      <div class="empty-ico" data-icon="users" data-icon-size="40"></div>
+      <p>No people found matching your filters.<br>Try different keywords or broaden your search.</p>
+    </div>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+whenAuthReady(() => {
+  if (Auth.isAdmin()) {
+    window.location.replace('admin.html');
+    return;
+  }
+  const user = Auth.current();
+  if (!user) document.getElementById('login-hint').classList.remove('hidden');
+
+  const searchInput = document.getElementById('people-search');
+  const interestSelect = document.getElementById('people-interest');
+  const statusSelect = document.getElementById('people-status');
+
+  function render() {
+    const q = searchInput.value.trim();
+    const interest = interestSelect.value;
+    const status = statusSelect.value;
+    const results = Connections.search(q, interest, status);
+
+    document.getElementById('people-count').textContent =
+      `Showing ${results.length} person${results.length !== 1 ? 's' : ''}`;
+
+    const connected = user ? Connections.connectedUsers().length : 0;
+    document.getElementById('connected-count').textContent =
+      user ? `${connected} connection${connected !== 1 ? 's' : ''}` : '';
+
+    const grid = document.getElementById('people-grid');
+    const noRes = document.getElementById('no-people');
+
+    if (results.length === 0) {
+      grid.innerHTML = '';
+      noRes.classList.remove('hidden');
+    } else {
+      noRes.classList.add('hidden');
+      grid.innerHTML = results.map(peopleCardHTML).join('');
+    }
+  }
+
+  document.getElementById('people-search-btn').addEventListener('click', render);
+  searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') render(); });
+  interestSelect.addEventListener('change', render);
+  statusSelect.addEventListener('change', render);
+  document.getElementById('people-clear-btn').addEventListener('click', () => {
+    searchInput.value = '';
+    interestSelect.value = 'all';
+    statusSelect.value = 'all';
+    render();
+  });
+
+  render();
+});
+</script>
+</body>
+</html>

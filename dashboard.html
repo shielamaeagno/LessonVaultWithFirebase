@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div id="dash-content"></div>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<!-- Delete confirm modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>Delete Lesson</h2>
+      <button class="modal-close" onclick="closeModal('delete-modal')"></button>
+    </div>
+    <p style="margin-bottom:24px;color:#4A5568">Are you sure? This cannot be undone.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline btn-full" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger btn-full" id="confirm-delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+let deleteTarget = null;
+
+whenAuthReady(() => {
+  const user = Auth.current();
+
+  if (!user) {
+    document.getElementById('dash-content').innerHTML = `
+      <div style="max-width:480px;margin:80px auto;padding:0 24px;text-align:center">
+        ${emptyStateIcon('lock', 40)}
+        <h2 style="margin-bottom:8px">Login Required</h2>
+        <p style="margin-bottom:24px">Please log in to access your dashboard.</p>
+        <button class="btn btn-gold" onclick="openModal('auth-modal')">Login / Register</button>
+      </div>`;
+    return;
+  }
+
+  const paint = () => {
+    renderDashboard(Auth.current() || user);
+    openDashboardTabFromHash();
+  };
+
+  whenDataReady({ forceRefresh: true }).then(paint).catch(paint);
+
+  document.addEventListener('lv:reactions-updated', paint);
+  document.addEventListener('lv:data-ready', paint);
+
+  document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+    if (deleteTarget) {
+      Lessons.delete(deleteTarget);
+      deleteTarget = null;
+      closeModal('delete-modal');
+      showToast('Lesson deleted.', 'success');
+      paint();
+    }
+  });
+});
+
+function renderDashboard(user) {
+  const myLessons = Lessons.byUser(user.id);
+  // Same pattern as comments: filter the shared store by the current user.
+  const commentsGiven = Comments.byUser(user.id).length;
+  const reactionsGiven = getReactionsGivenByUser(user.id);
+  const reactionsReceived = getReactionsReceivedByUser(user.id);
+
+  document.getElementById('dash-content').innerHTML = `
+    <div class="dashboard-layout">
+      <!-- Sidebar -->
+      <aside class="dashboard-sidebar">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">${icon('user', 24)}</div>
+          <div class="sidebar-name">${escHtml(user.username)}</div>
+          <div class="sidebar-email">${escHtml(user.email)}</div>
+          <div style="font-size:0.75rem;color:var(--muted);margin-top:4px">Member since ${user.joined}</div>
+        </div>
+        <nav class="sidebar-nav">
+          <a href="#overview" class="active" onclick="setTab('overview',this)"><span class="nav-ico">${icon('layout-dashboard', 16)}</span> Overview</a>
+          <a href="#my-lessons" onclick="setTab('my-lessons',this)"><span class="nav-ico">${icon('file-text', 16)}</span> My Lessons</a>
+          <a href="#profile" onclick="setTab('profile',this)"><span class="nav-ico">${icon('user', 16)}</span> Profile</a>
+          <a href="share.html" style="color:var(--teal)"><span class="nav-ico">${icon('pencil', 16)}</span> Share New Lesson</a>
+          <a href="#" onclick="handleLogout();return false;" style="color:var(--danger)"><span class="nav-ico">${icon('log-out', 16)}</span> Logout</a>
+        </nav>
+      </aside>
+
+      <!-- Main -->
+      <main class="dashboard-main">
+        <!-- Overview Tab -->
+        <div id="tab-overview" class="dash-tab-panel">
+          <h2 style="margin-bottom:20px">Welcome back, ${escHtml(user.username)}!</h2>
+          <div class="dash-stats">
+            <div class="dash-stat-card">
+              <div class="dash-stat-num">${myLessons.length}</div>
+              <div class="dash-stat-lbl">Lessons Shared</div>
+            </div>
+            <div class="dash-stat-card gold">
+              <div class="dash-stat-num">${reactionsReceived}</div>
+              <div class="dash-stat-lbl">Reactions I Received</div>
+            </div>
+            <div class="dash-stat-card green">
+              <div class="dash-stat-num">${reactionsGiven}</div>
+              <div class="dash-stat-lbl">Reactions I Gave</div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-num">${commentsGiven}</div>
+              <div class="dash-stat-lbl">Comments I Gave</div>
+            </div>
+          </div>
+
+          ${myLessons.length > 0 ? `
+          <div class="form-card">
+            <h3 style="margin-bottom:16px">Your Most Helpful Lesson</h3>
+            ${(() => {
+              const top = [...myLessons].sort((a,b) => getTotalReactionsForPost(b.id) - getTotalReactionsForPost(a.id))[0];
+              const m = catMeta(top.category);
+              const topRx = getTotalReactionsForPost(top.id);
+              return `
+                <div style="display:flex;align-items:flex-start;gap:14px">
+                  <span style="display:flex;align-items:center">${catIcon(top.category, 32)}</span>
+                  <div>
+                    <div style="font-weight:700;margin-bottom:4px">${escHtml(top.title)}</div>
+                    <div style="font-size:0.85rem;color:var(--muted);margin-bottom:8px">${escHtml(top.lessonLearned.slice(0,120))}…</div>
+                    <span style="background:var(--offwhite);padding:4px 12px;border-radius:50px;font-size:0.78rem">${topRx} reactions</span>
+                  </div>
+                </div>`;
+            })()}
+          </div>` : `
+          <div class="empty-state">
+            ${emptyStateIcon('pencil', 40)}
+            <h3>You haven't shared any lessons yet</h3>
+            <p>Share your first experience and help others grow through your story.</p>
+            <a href="share.html" class="btn btn-gold">Share Your First Lesson</a>
+          </div>`}
+        </div>
+
+        <!-- My Lessons Tab -->
+        <div id="tab-my-lessons" class="dash-tab-panel hidden">
+          <div class="flex-between mb-6">
+            <h2>My Lessons (${myLessons.length})</h2>
+            <a href="share.html" class="btn btn-gold btn-sm">+ New Lesson</a>
+          </div>
+          ${myLessons.length === 0 ? `
+            <div class="empty-state">
+            ${emptyStateIcon('file-text', 40)}
+              <p>You haven't shared any lessons yet.</p>
+              <a href="share.html" class="btn btn-gold">Share Your First Lesson</a>
+            </div>` : `
+          <div class="submission-list">
+            ${myLessons.map(l => {
+              const m = catMeta(l.category);
+              const rx = getTotalReactionsForPost(l.id);
+              return `
+              <div class="submission-item">
+                <div class="submission-info">
+                  <div class="submission-title">${escHtml(l.title)}</div>
+                  <div class="submission-preview">${escHtml(l.lessonLearned.slice(0,100))}…</div>
+                  <div class="submission-meta">
+                    <span class="card-cat-badge ${m.cls}">${catBadgeInner(m)}</span>
+                    <span>${icon('calendar', 14, 'lv-icon icon-inline')} ${l.datePosted}</span>
+                    <span>${rx} reactions</span>
+                    <span>${l.anonymous ? icon('lock', 14, 'lv-icon icon-inline') + ' Anonymous' : icon('user', 14, 'lv-icon icon-inline') + ' Public'}</span>
+                  </div>
+                </div>
+                <div class="submission-actions">
+                  <a href="lesson.html?id=${l.id}" class="btn btn-outline btn-sm">View</a>
+                  <a href="share.html?edit=${l.id}" class="btn btn-sm" style="background:var(--offwhite)">${icon('pencil', 14, 'lv-icon icon-inline')} Edit</a>
+                  <button class="btn btn-danger btn-sm" onclick="confirmDelete('${l.id}')" aria-label="Delete">${icon('trash-2', 14)}</button>
+                </div>
+              </div>`;
+            }).join('')}
+          </div>`}
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="tab-profile" class="dash-tab-panel hidden">
+          <h2 style="margin-bottom:24px">Account Profile</h2>
+          <div class="form-card" style="max-width:480px">
+            <div class="form-group">
+              <label class="form-label">Username</label>
+              <input type="text" class="form-control" value="${escHtml(user.username)}" id="prof-username">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="email" class="form-control" value="${escHtml(user.email)}" id="prof-email">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Member Since</label>
+              <input type="text" class="form-control" value="${user.joined}" disabled style="background:var(--offwhite);cursor:not-allowed">
+            </div>
+            <div class="divider"></div>
+            <h3 style="margin-bottom:16px">Change Password</h3>
+            <div class="form-group">
+              <label class="form-label">New Password</label>
+              <div class="password-field">
+                <input type="password" class="form-control" id="prof-password" placeholder="Leave blank to keep current" autocomplete="new-password">
+                <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePasswordVisibility(this)">Show</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveProfile()">${icon('save', 14, 'lv-icon icon-inline')} Save Changes</button>
+          </div>
+        </div>
+      </main>
+    </div>`;
+  if (typeof initDecorativeIcons === 'function') initDecorativeIcons();
+}
+
+function setTab(name, link) {
+  if (typeof event !== 'undefined' && event.preventDefault) event.preventDefault();
+  document.querySelectorAll('.dash-tab-panel').forEach(p => p.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+  if (link && link.classList) link.classList.add('active');
+}
+
+function openDashboardTabFromHash() {
+  const name = (location.hash || '').replace('#', '');
+  if (!name || !document.getElementById('tab-' + name)) return;
+  const link = document.querySelector('.sidebar-nav a[href="#' + name + '"]');
+  setTab(name, link);
+}
+
+function confirmDelete(id) {
+  deleteTarget = id;
+  openModal('delete-modal');
+}
+
+function saveProfile() {
+  const user = Auth.current();
+  const username = document.getElementById('prof-username').value.trim();
+  const email    = document.getElementById('prof-email').value.trim();
+  const password = document.getElementById('prof-password').value;
+  if (!username || !email) { showToast('Username and email are required.', 'error'); return; }
+  const users = DB.get('users') || [];
+  const idx = users.findIndex(u => u.id === user.id);
+  if (idx !== -1) {
+    users[idx].username = username;
+    users[idx].email = email;
+    if (password && password.length >= 6) users[idx].password = password;
+    DB.set('users', users);
+    DB.set('currentUser', users[idx]);
+    showToast('Profile updated!', 'success');
+    setTimeout(() => location.reload(), 800);
+  }
+}
+</script>
+</body>
+</html>

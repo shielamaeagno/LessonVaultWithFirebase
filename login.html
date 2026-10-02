@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+ <meta charset="UTF-8">
+ <meta name="viewport" content="width=device-width, initial-scale=1.0">
+ <title>Login — Lesson Vault</title>
+ <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page-body">
+
+<div class="login-page">
+ <div class="login-page-bg"></div>
+
+ <div class="login-shell">
+ <div class="login-brand">
+ <div class="login-logo">
+ <div class="vault-icon"></div>
+ <span>Lesson<span class="gold">Vault</span></span>
+ </div>
+ <h1>Welcome back</h1>
+ <p>Sign in or create an account to explore lessons, share your story, and grow with our community.</p>
+ <ul class="login-features">
+ <li>Browse real-life lessons from others</li>
+ <li>Share experiences anonymously or openly</li>
+ <li>Connect with people on similar journeys</li>
+ </ul>
+ </div>
+
+ <div class="login-card">
+ <div class="login-card-header">
+ <h2>Get started</h2>
+ <p>Login or register to enter the vault</p>
+ </div>
+
+ <div class="modal-tabs login-tabs">
+ <div class="modal-tab active" data-tab="tab-login">Login</div>
+ <div class="modal-tab" data-tab="tab-register">Register</div>
+ </div>
+
+ <div class="modal-panel active" id="tab-login">
+ <form id="login-form">
+ <div class="form-group">
+ <label class="form-label">Email</label>
+ <input name="email" type="email" class="form-control" placeholder="you@email.com" required autocomplete="email">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Password</label>
+ <div class="password-field">
+ <input name="password" type="password" class="form-control" placeholder="••••••••" required autocomplete="current-password">
+ <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePasswordVisibility(this)">Show</button>
+ </div>
+ </div>
+ <div class="form-group login-demo-hint">Demo: <strong>test@lessonvault.com</strong> / <strong>password123</strong><br>Admin: <strong>admin@lessonvault.com</strong> / <strong>admin123</strong>
+ </div>
+ <button type="submit" class="btn btn-primary btn-full">Login</button>
+ </form>
+ </div>
+
+ <div class="modal-panel" id="tab-register">
+ <form id="register-form">
+ <div class="form-group">
+ <label class="form-label">Username<span class="req">*</span></label>
+ <input name="username" type="text" class="form-control" placeholder="YourName" required autocomplete="username">
+ </div>
+ <div class="form-row">
+ <div class="form-group">
+ <label class="form-label">Email<span class="req">*</span></label>
+ <input name="email" type="email" class="form-control" placeholder="you@email.com" required autocomplete="email">
+ </div>
+ <div class="form-group">
+ <label class="form-label">Password<span class="req">*</span></label>
+ <div class="password-field">
+ <input name="password" type="password" class="form-control" placeholder="Min 6 chars" required autocomplete="new-password">
+ <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePasswordVisibility(this)">Show</button>
+ </div>
+ </div>
+ </div>
+ <div class="form-group">
+ <label class="form-label">Confirm Password<span class="req">*</span></label>
+ <div class="password-field">
+ <input name="confirm" type="password" class="form-control" placeholder="Repeat password" required autocomplete="new-password">
+ <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePasswordVisibility(this)">Show</button>
+ </div>
+ </div>
+ <button type="submit" class="btn btn-gold btn-full">Create Account</button>
+ </form>
+ </div>
+ </div>
+ </div>
+
+ <p class="login-footer-tagline">"Learn from Experiences, Grow Through Lessons."</p>
+</div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>

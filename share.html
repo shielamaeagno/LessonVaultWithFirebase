@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Share Your Lesson — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › <span id="page-breadcrumb">Share</span></div>
+    <h1 id="page-title">Share Your Experience</h1>
+    <p id="page-desc">Your story matters. Share what happened and the lesson it taught you — anonymously or with your name.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner" style="max-width:800px">
+
+    <div id="auth-gate" class="hidden">
+      <div class="empty-state">
+        <div class="empty-ico" data-icon="lock" data-icon-size="40"></div>
+        <h2>Login Required</h2>
+        <p>You need to be logged in to share a lesson. Create a free account — it only takes a minute.</p>
+        <button class="btn btn-gold" onclick="openModal('auth-modal')">Login / Register</button>
+      </div>
+    </div>
+
+    <div id="share-form-wrap">
+      <div class="form-card">
+        <form id="share-form">
+          <div class="form-group">
+            <label class="form-label">Lesson Title <span class="req">*</span></label>
+            <input id="f-title" name="title" type="text" class="form-control" placeholder='e.g. "What procrastination cost me in college"' required maxlength="120" data-maxlength="120">
+            <div class="char-counter"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Category <span class="req">*</span></label>
+            <select id="f-category" name="category" class="form-control" required>
+              <option value="">— Select a category —</option>
+              <option value="academic">Academic</option>
+              <option value="career">Career</option>
+              <option value="business">Business</option>
+              <option value="financial">Financial</option>
+              <option value="relationship">Relationship</option>
+              <option value="technology">Technology</option>
+              <option value="personal">Personal Growth</option>
+              <option value="faith">Faith & Spirituality</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Video URL <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <input id="f-video" name="videoUrl" type="url" class="form-control" placeholder="https://youtube.com/watch?v=… or embed URL">
+            <div class="form-hint">Paste a YouTube or video embed link to attach a video to your lesson.</div>
+          </div>
+
+          <div class="form-group" id="verse-picker-group">
+            <label class="form-label">Bible Verses <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <div class="form-hint" style="margin-bottom:10px">Select scripture verses that relate to your lesson. Verses update when you change category.</div>
+            <div class="verse-picker" id="verse-picker"></div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Your Experience <span class="req">*</span></label>
+            <textarea id="f-experience" name="experience" class="form-control" rows="6" placeholder="Describe what happened. Be honest and specific — the more real, the more helpful." required maxlength="2000" data-maxlength="2000"></textarea>
+            <div class="char-counter"></div>
+            <div class="form-hint">Describe the situation, what you did, and what went wrong or right.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">The Lesson Learned <span class="req">*</span></label>
+            <textarea id="f-lesson" name="lessonLearned" class="form-control" rows="4" placeholder="What is the key takeaway? What would you tell someone facing the same situation?" required maxlength="1000" data-maxlength="1000"></textarea>
+            <div class="char-counter"></div>
+            <div class="form-hint">Make this clear and actionable — this is the part that helps others most.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="check-label">
+              <input type="checkbox" id="f-gen-video" name="generateAdviceVideo">
+              Auto-generate an advice video with Bible verses after publishing
+            </label>
+            <div class="form-hint" style="margin-top:6px;margin-left:28px">Creates a slideshow presentation combining your lesson with selected scripture.</div>
+          </div>
+
+          <div class="form-group">
+            <label class="check-label">
+              <input type="checkbox" id="f-anonymous" name="anonymous">
+              Share anonymously (your name won't appear)
+            </label>
+            <div class="form-hint" style="margin-top:6px;margin-left:28px">You can always share anonymously — your identity is never required.</div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button type="submit" class="btn btn-gold" id="submit-btn">Publish Lesson</button>
+            <button type="button" class="btn btn-outline" id="preview-btn">Preview</button>
+            <a href="explore.html" class="btn" style="background:var(--offwhite);color:var(--navy)">Cancel</a>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tips card -->
+      <div class="form-card" style="margin-top:24px;background:var(--navy);color:var(--white)">
+        <h3 style="color:var(--gold);margin-bottom:16px">Tips for a Great Lesson</h3>
+        <ul style="display:flex;flex-direction:column;gap:10px;padding-left:4px">
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--light)"><span data-icon="check" data-icon-size="14" style="flex-shrink:0;margin-top:2px"></span><span>Be specific — general advice is less helpful than a real story</span></li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--light)"><span data-icon="check" data-icon-size="14" style="flex-shrink:0;margin-top:2px"></span><span>Focus on what you learned, not just what happened</span></li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--light)"><span data-icon="check" data-icon-size="14" style="flex-shrink:0;margin-top:2px"></span><span>Keep your lesson actionable so others can apply it immediately</span></li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--light)"><span data-icon="check" data-icon-size="14" style="flex-shrink:0;margin-top:2px"></span><span>Vulnerability is strength — honest stories get the most helpful marks</span></li>
+          <li style="display:flex;gap:10px;align-items:flex-start;font-size:0.9rem;color:var(--light)"><span data-icon="lock" data-icon-size="14" style="flex-shrink:0;margin-top:2px"></span><span>Post anonymously if you're sharing something personal</span></li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="preview-modal">
+  <div class="modal" style="max-width:680px;max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <h2>Preview</h2>
+      <button class="modal-close" onclick="closeModal('preview-modal')"></button>
+    </div>
+    <div id="preview-content"></div>
+    <div style="margin-top:20px;display:flex;gap:10px">
+      <button class="btn btn-gold btn-full" onclick="document.getElementById('share-form').requestSubmit()">Publish Now</button>
+      <button class="btn btn-outline btn-full" onclick="closeModal('preview-modal')">Keep Editing</button>
+    </div>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+whenAuthReady(() => {
+  const params  = new URLSearchParams(location.search);
+  const editId  = params.get('edit');
+  const user    = Auth.current();
+  let selectedVerses = [];
+
+  function renderVersePicker(category, preselected) {
+    const picker = document.getElementById('verse-picker');
+    const verses = [...(BIBLE_VERSES[category] || []), ...(BIBLE_VERSES.faith || [])];
+    if (!verses.length) {
+      picker.innerHTML = '<p class="text-muted" style="font-size:0.88rem">Select a category to see related verses.</p>';
+      return;
+    }
+    selectedVerses = preselected || verses.slice(0, 2);
+    picker.innerHTML = verses.map((v, i) => {
+      const sel = selectedVerses.some(s => s.reference === v.reference);
+      return `<label class="verse-option ${sel ? 'selected' : ''}">
+        <input type="checkbox" data-idx="${i}" ${sel ? 'checked' : ''}>
+        <div>
+          <div class="verse-option-text">"${escHtml(v.text)}"</div>
+          <div class="verse-option-ref">${escHtml(v.reference)} (${escHtml(v.translation)})</div>
+        </div>
+      </label>`;
+    }).join('');
+
+    picker.querySelectorAll('.verse-option').forEach(label => {
+      label.addEventListener('click', e => {
+        if (e.target.tagName === 'INPUT') return;
+        const cb = label.querySelector('input');
+        cb.checked = !cb.checked;
+        label.classList.toggle('selected', cb.checked);
+        updateSelectedVerses(category);
+      });
+      label.querySelector('input').addEventListener('change', () => {
+        label.classList.toggle('selected', label.querySelector('input').checked);
+        updateSelectedVerses(category);
+      });
+    });
+  }
+
+  function updateSelectedVerses(category) {
+    const verses = [...(BIBLE_VERSES[category] || []), ...(BIBLE_VERSES.faith || [])];
+    selectedVerses = [];
+    document.querySelectorAll('#verse-picker input:checked').forEach(cb => {
+      const v = verses[parseInt(cb.dataset.idx)];
+      if (v) selectedVerses.push(v);
+    });
+  }
+
+  document.getElementById('f-category').addEventListener('change', e => {
+    renderVersePicker(e.target.value);
+  });
+
+  if (!user) {
+    document.getElementById('auth-gate').classList.remove('hidden');
+    document.getElementById('share-form-wrap').classList.add('hidden');
+    return;
+  }
+
+  // Edit mode
+  if (editId) {
+    const lesson = Lessons.byId(editId);
+    if (!lesson || lesson.userId !== user.id) {
+      showToast('You cannot edit this lesson.', 'error');
+      window.location.href = 'dashboard.html';
+      return;
+    }
+    document.getElementById('page-title').textContent = 'Edit Your Lesson';
+    document.getElementById('page-desc').textContent = 'Update your story or lesson details below.';
+    document.getElementById('page-breadcrumb').textContent = 'Edit Lesson';
+    document.getElementById('submit-btn').textContent = 'Save Changes';
+    document.getElementById('f-title').value = lesson.title;
+    document.getElementById('f-category').value = lesson.category;
+    document.getElementById('f-experience').value = lesson.experience;
+    document.getElementById('f-lesson').value = lesson.lessonLearned;
+    document.getElementById('f-anonymous').checked = lesson.anonymous;
+    document.getElementById('f-video').value = lesson.videoUrl || '';
+    document.getElementById('f-gen-video').checked = false;
+    renderVersePicker(lesson.category, lesson.bibleVerses || []);
+    // Fire char counters
+    ['f-title','f-experience','f-lesson'].forEach(id => {
+      document.getElementById(id).dispatchEvent(new Event('input'));
+    });
+  } else {
+    renderVersePicker(document.getElementById('f-category').value || 'personal');
+  }
+
+  // Submit
+  document.getElementById('share-form').addEventListener('submit', e => {
+    e.preventDefault();
+    const data = {
+      title: document.getElementById('f-title').value.trim(),
+      category: document.getElementById('f-category').value,
+      experience: document.getElementById('f-experience').value.trim(),
+      lessonLearned: document.getElementById('f-lesson').value.trim(),
+      anonymous: document.getElementById('f-anonymous').checked,
+      videoUrl: document.getElementById('f-video').value.trim(),
+      bibleVerses: selectedVerses.length ? selectedVerses : versesForCategory(document.getElementById('f-category').value),
+    };
+    const genVideo = document.getElementById('f-gen-video').checked;
+    if (!data.title || !data.category || !data.experience || !data.lessonLearned) {
+      showToast('Please fill in all required fields.', 'error'); return;
+    }
+    if (editId) {
+      const result = Lessons.update(editId, data);
+      if (result?.rejected) {
+        showToast('Content blocked: ' + result.reasons.join('. '), 'error');
+        setTimeout(() => window.location.href = 'dashboard.html', 1200);
+        return;
+      }
+      if (genVideo) AdviceVideo.generate(editId);
+      showToast('Lesson updated successfully!', 'success');
+      setTimeout(() => window.location.href = `lesson.html?id=${editId}`, 800);
+    } else {
+      const result = Lessons.create(data);
+      if (result.rejected) {
+        showToast('Post blocked — unrelated or policy violation: ' + result.reasons.join('. '), 'error');
+        return;
+      }
+      const lesson = result.lesson;
+      if (genVideo) AdviceVideo.generate(lesson.id);
+      if (result.flagged) {
+        showToast('Published but held for admin review due to content flags.', 'info');
+      } else {
+        showToast('Your lesson has been published!', 'success');
+      }
+      setTimeout(() => window.location.href = `lesson.html?id=${lesson.id}`, 800);
+    }
+  });
+
+  // Preview
+  document.getElementById('preview-btn').addEventListener('click', () => {
+    const title    = document.getElementById('f-title').value.trim();
+    const category = document.getElementById('f-category').value;
+    const exp      = document.getElementById('f-experience').value.trim();
+    const lesson   = document.getElementById('f-lesson').value.trim();
+    const anon     = document.getElementById('f-anonymous').checked;
+    if (!title || !category || !exp || !lesson) {
+      showToast('Fill in all fields to preview.', 'error'); return;
+    }
+    const m = catMeta(category);
+    document.getElementById('preview-content').innerHTML = `
+      <div style="background:linear-gradient(135deg,var(--navy),var(--navy2));padding:24px;border-radius:var(--radius-lg);margin-bottom:20px;color:var(--white)">
+        <span class="card-cat-badge ${m.cls}" style="margin-bottom:10px;display:inline-block">${catBadgeInner(m)}</span>
+        <h2 style="color:var(--white);margin-bottom:8px">${escHtml(title)}</h2>
+        <span style="font-size:0.82rem;color:var(--muted)">${anon ? icon('lock', 14, 'lv-icon icon-inline') + ' Anonymous' : icon('user', 14, 'lv-icon icon-inline') + ' ' + escHtml(user.username)} · Today</span>
+      </div>
+      <h4 style="color:var(--teal);font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">The Experience</h4>
+      <p style="font-family:Georgia,serif;line-height:1.8;margin-bottom:20px">${escHtml(exp)}</p>
+      <h4 style="color:var(--teal);font-size:0.78rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">The Lesson Learned</h4>
+      <p style="background:var(--offwhite);padding:16px;border-radius:var(--radius);border-left:4px solid var(--teal);font-style:italic;font-family:Georgia,serif;line-height:1.8">${escHtml(lesson)}</p>
+      ${selectedVerses.length ? bibleVersesHTML(selectedVerses) : ''}
+    `;
+    openModal('preview-modal');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+
+    function validEntry(d) {
+      return d.keys().hasOnly(['uid','authorName','title','reflection','actionStep',
+                               'mood','status','tags','lessonId','lessonTitle',
+                               'createdAt','updatedAt'])
+        && d.keys().hasAll(['uid','title','reflection','mood','status','tags','createdAt','updatedAt'])
+        && d.title is string && d.title.size() >= 3 && d.title.size() <= 100
+        && d.reflection is string && d.reflection.size() >= 10 && d.reflection.size() <= 2000
+        && d.mood in ['motivated','hopeful','grateful','reflective','struggling','confident']
+        && d.status in ['to-apply','in-progress','applied']
+        && d.tags is list && d.tags.size() <= 5
+        && (!('actionStep' in d) || (d.actionStep is string && d.actionStep.size() <= 300))
+        && (!('lessonId' in d) || (d.lessonId is string && d.lessonId.size() <= 40))
+        && (!('lessonTitle' in d) || (d.lessonTitle is string && d.lessonTitle.size() <= 255));
+    }
+
+    // Private journal: each person can only see and change their own entries.
+    match /journalEntries/{entryId} {
+      allow read:   if signedIn() && resource.data.uid == request.auth.uid;
+      allow create: if signedIn()
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.createdAt == request.time
+                    && validEntry(request.resource.data);
+      allow update: if signedIn()
+                    && resource.data.uid == request.auth.uid
+                    && request.resource.data.uid == resource.data.uid
+                    && request.resource.data.createdAt == resource.data.createdAt
+                    && validEntry(request.resource.data);
+      allow delete: if signedIn() && resource.data.uid == request.auth.uid;
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Vault — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div class="page-banner">
+  <div class="page-banner-inner">
+    <div class="breadcrumb"><a href="index.html">Home</a> › Vault</div>
+    <h1>The Lesson Vault</h1>
+    <p>Our curated collection of the most powerful, most helpful, and most recent lessons. Organized for easy discovery.</p>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-inner">
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:4px;margin-bottom:32px;background:var(--white);padding:6px;border-radius:var(--radius-lg);box-shadow:var(--shadow);width:fit-content">
+      <button class="vault-tab btn btn-primary btn-sm active" data-tab="most-helpful">Most Helpful</button>
+      <button class="vault-tab btn btn-sm" data-tab="recent" style="background:transparent;color:var(--navy)">Recently Added</button>
+      <button class="vault-tab btn btn-sm" data-tab="all" style="background:transparent;color:var(--navy)">All Lessons</button>
+    </div>
+
+    <!-- Panels -->
+    <div id="vault-panel-most-helpful" class="vault-panel">
+      <div class="section-header">
+        <h2>Most Helpful Lessons</h2>
+        <p class="sub">Ranked by community helpful marks — these lessons have helped the most people.</p>
+      </div>
+      <div class="lessons-grid" id="helpful-grid"></div>
+    </div>
+
+    <div id="vault-panel-recent" class="vault-panel hidden">
+      <div class="section-header">
+        <h2>Recently Added</h2>
+        <p class="sub">The newest contributions to the vault.</p>
+      </div>
+      <div class="lessons-grid" id="recent-grid"></div>
+    </div>
+
+    <div id="vault-panel-all" class="vault-panel hidden">
+      <div class="section-header">
+        <h2>All Lessons</h2>
+        <p class="sub">Every lesson in the vault, sorted by category.</p>
+      </div>
+      <div id="all-by-cat"></div>
+    </div>
+
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  function bindCardClicks() {
+    document.querySelectorAll('.lesson-card').forEach(card => {
+      card.style.cursor = 'pointer';
+      card.addEventListener('click', e => {
+        if (e.target.closest('.reaction-bar') || e.target.closest('.reaction-btn')) return;
+        window.location.href = `lesson.html?id=${card.dataset.id}`;
+      });
+    });
+  }
+
+  function renderVault() {
+    const lessons = Lessons.all();
+    const byHelpful = [...lessons].sort((a,b) => (b.helpful || 0) - (a.helpful || 0));
+    document.getElementById('helpful-grid').innerHTML = byHelpful.map(lessonCardHTML).join('');
+
+    const byDate = [...lessons].sort((a,b) => (parseTimestamp(b.datePosted)?.getTime() || 0) - (parseTimestamp(a.datePosted)?.getTime() || 0));
+    document.getElementById('recent-grid').innerHTML = byDate.map(lessonCardHTML).join('');
+
+    const allByCat = document.getElementById('all-by-cat');
+    allByCat.innerHTML = '';
+    Object.entries(CAT_META).forEach(([key, m]) => {
+      const catLessons = lessons.filter(l => l.category === key);
+      if (!catLessons.length) return;
+      allByCat.innerHTML += `
+        <div style="margin-bottom:40px">
+          <h3 style="margin-bottom:16px">${catIcon(key, 24)} ${m.label} <span style="font-weight:400;color:var(--muted);font-size:0.9rem">(${catLessons.length})</span></h3>
+          <div class="lessons-grid">${catLessons.map(lessonCardHTML).join('')}</div>
+        </div>`;
+    });
+    bindCardClicks();
+    if (typeof initDecorativeIcons === 'function') initDecorativeIcons();
+  }
+
+  renderVault();
+  document.addEventListener('lv:reactions-updated', renderVault);
+  document.addEventListener('lv:data-ready', renderVault);
+  whenDataReady({ forceRefresh: true }).then(renderVault).catch(() => {});
+
+  document.querySelectorAll('.vault-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.vault-tab').forEach(t => {
+        t.classList.remove('active', 'btn-primary');
+        t.style.background = 'transparent';
+        t.style.color = 'var(--navy)';
+      });
+      tab.classList.add('active', 'btn-primary');
+      tab.style.background = '';
+      tab.style.color = '';
+
+      document.querySelectorAll('.vault-panel').forEach(p => p.classList.add('hidden'));
+      document.getElementById('vault-panel-' + tab.dataset.tab).classList.remove('hidden');
+    });
+  });
+});
+</script>
+</body>
+</html>

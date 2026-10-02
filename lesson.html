@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson — Lesson Vault</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="navbar-placeholder"></div>
+
+<div id="lesson-content"></div>
+
+<div id="footer-placeholder"></div>
+<div id="auth-modal-placeholder"></div>
+
+<!-- Delete Confirm Modal -->
+<div class="modal-overlay" id="delete-modal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-header">
+      <h2>Delete Lesson</h2>
+      <button class="modal-close" onclick="closeModal('delete-modal')"></button>
+    </div>
+    <p style="margin-bottom:24px;color:#4A5568">Are you sure you want to delete this lesson? This action cannot be undone.</p>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline btn-full" onclick="closeModal('delete-modal')">Cancel</button>
+      <button class="btn btn-danger btn-full" id="confirm-delete-btn" onclick="confirmDeleteLesson()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/paths.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/session.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/app.js"></script>
+<script>
+let currentLessonId = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+  bootLessonPage();
+});
+
+async function bootLessonPage() {
+  const params = new URLSearchParams(location.search);
+  const id = params.get('id');
+  const content = document.getElementById('lesson-content');
+
+  content.innerHTML = `
+    <div class="lesson-detail-wrap">
+      <div class="empty-state">
+        <p style="color:var(--muted)">Loading lesson…</p>
+      </div>
+    </div>`;
+
+  // Wait for remote comments/lessons so notification deep-links can find the comment
+  try {
+    if (typeof whenDataReady === 'function') {
+      const needsComment = !!params.get('comment');
+      await whenDataReady({ forceRefresh: needsComment });
+    }
+  } catch (err) {
+    console.warn('Lesson data wait failed:', err);
+  }
+
+  const lesson = id ? Lessons.byId(id, { includeFlagged: true }) : null;
+
+  if (!lesson) {
+    content.innerHTML = `
+      <div class="lesson-detail-wrap">
+        <div class="empty-state">
+          <div class="empty-ico" data-icon="search" data-icon-size="40"></div>
+          <h2>Lesson not found</h2>
+          <p>This lesson may have been removed or the link is invalid.</p>
+          <a href="explore.html" class="btn btn-primary">Browse All Lessons</a>
+        </div>
+      </div>`;
+    return;
+  }
+
+  currentLessonId = lesson.id;
+  renderLesson(lesson);
+  document.addEventListener('lv:auth-ready', () => {
+    renderLesson(Lessons.byId(currentLessonId, { includeFlagged: true }) || lesson);
+  }, { once: true });
+  const refreshLesson = () => {
+    const latest = Lessons.byId(currentLessonId, { includeFlagged: true });
+    if (latest) renderLesson(latest);
+  };
+  document.addEventListener('lv:reactions-updated', refreshLesson);
+  document.addEventListener('lv:data-ready', refreshLesson);
+  highlightCommentFromUrl();
+}
+
+function highlightCommentFromUrl() {
+  const commentId = new URLSearchParams(location.search).get('comment');
+  if (!commentId) return;
+
+  let attempts = 0;
+  const maxAttempts = 20;
+
+  const tryHighlight = () => {
+    const el = document.querySelector(`.comment-item[data-id="${CSS.escape(commentId)}"]`);
+    if (el) {
+      el.classList.add('comment-highlight');
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Keep highlight visible briefly, then leave a subtle mark
+      setTimeout(() => el.classList.add('comment-highlight-settled'), 3200);
+      return;
+    }
+    attempts += 1;
+    if (attempts < maxAttempts) setTimeout(tryHighlight, 200);
+  };
+
+  setTimeout(tryHighlight, 50);
+}
+
+function renderLesson(lesson) {
+  const m = catMeta(lesson.category);
+  const user = Auth.current();
+  const isOwner = user && user.id === lesson.userId;
+  const comments = Comments.byLesson(lesson.id);
+  const related = Lessons.all().filter(l => l.category === lesson.category && l.id !== lesson.id).slice(0, 3);
+  const totalRx = getTotalReactionsForPost(lesson.id);
+
+  document.title = lesson.title + ' — Lesson Vault';
+
+  const hasAdviceVideo = lesson.adviceVideo?.status === 'ready';
+
+  document.getElementById('lesson-content').innerHTML = `
+    <div class="lesson-detail-wrap">
+      <div class="breadcrumb">
+        <a href="index.html">Home</a> ›
+        <a href="explore.html">Explore</a> ›
+        <span>${escHtml(lesson.title)}</span>
+      </div>
+
+      <div class="lesson-detail-card">
+        ${lesson.status === 'flagged' ? `<div class="mod-alert">${icon('alert-triangle', 16, 'lv-icon icon-inline')} This lesson is under admin review and hidden from public listings. Reason: ${escHtml(lesson.moderationReason || 'Content flagged')}</div>` : ''}
+        <div class="lesson-header">
+          <span class="card-cat-badge ${m.cls}" style="margin-bottom:12px;display:inline-block">${catBadgeInner(m)}</span>
+          <h1>${escHtml(lesson.title)}</h1>
+          <div class="lesson-meta-row" style="margin-top:12px">
+            <span class="lesson-meta-item">${icon('calendar', 14, 'lv-icon icon-inline')} ${fmtDate(lesson.datePosted)}</span>
+            <span class="lesson-meta-item">${lesson.anonymous ? icon('lock', 14, 'lv-icon icon-inline') + ' Shared Anonymously' : icon('user', 14, 'lv-icon icon-inline') + ' ' + escHtml(lesson.author)}</span>
+            <span class="lesson-meta-item">${icon('heart', 14, 'lv-icon icon-inline')} <span id="reaction-count">${totalRx}</span><span id="reaction-count-label"> reaction${totalRx !== 1 ? 's' : ''}</span></span>
+            <span class="lesson-meta-item">${icon('message-square', 14, 'lv-icon icon-inline')} <span id="comment-count">${comments.length}</span> comment${comments.length !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+
+        <div class="lesson-body">
+          ${videoEmbedHTML(lesson.videoUrl)}
+          <div class="lesson-section">
+            <h3>The Experience</h3>
+            <p>${escHtml(lesson.experience)}</p>
+          </div>
+          <div class="lesson-section">
+            <h3>The Lesson Learned</h3>
+            <p style="background:var(--offwhite);padding:20px;border-radius:var(--radius);border-left:4px solid var(--teal);font-style:italic;">${escHtml(lesson.lessonLearned)}</p>
+          </div>
+          ${bibleVersesHTML(lesson.bibleVerses)}
+
+          <div class="advice-video-section">
+            <h3>Advice Video with Scripture</h3>
+            <p style="font-size:0.88rem;color:var(--muted);margin-bottom:16px">An AI-generated advice presentation combining this lesson with relevant Bible verses.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+              ${hasAdviceVideo
+                ? `<button class="btn btn-gold btn-sm" onclick="playAdviceVideo()">${icon('play', 14, 'lv-icon icon-inline')} Play Advice Video</button>`
+                : `<button class="btn btn-gold btn-sm" onclick="generateAdviceVideo()">${icon('sparkles', 14, 'lv-icon icon-inline')} Generate Advice Video</button>`}
+              ${hasAdviceVideo ? `<button class="btn btn-outline btn-sm" onclick="generateAdviceVideo()">${icon('refresh-cw', 14, 'lv-icon icon-inline')} Regenerate</button>` : ''}
+            </div>
+            <div id="advice-video-container" class="${hasAdviceVideo ? '' : 'hidden'}"></div>
+          </div>
+        </div>
+
+        <div class="lesson-reactions-section">
+          ${reactionBarHTML(lesson, false)}
+        </div>
+
+        <div class="lesson-actions-bar">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;width:100%;justify-content:flex-end">
+            ${isOwner ? `
+              <a href="share.html?edit=${lesson.id}" class="btn btn-outline btn-sm">${icon('pencil', 14, 'lv-icon icon-inline')} Edit</a>
+              <button class="btn btn-danger btn-sm" onclick="openModal('delete-modal')">${icon('trash-2', 14, 'lv-icon icon-inline')} Delete</button>
+            ` : ''}
+            <a href="explore.html" class="btn btn-sm" style="background:var(--offwhite);color:var(--navy)">← Back to Explore</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="comments-section">
+        <h3>${icon('message-square', 16, 'lv-icon icon-inline')} Comments (<span id="comment-count-header">${comments.length}</span>)</h3>
+        <div id="comments-list">
+          ${comments.length
+            ? comments.map(c => commentHTML(c, user && (c.userId === user.id || Auth.isAdmin()))).join('')
+            : '<div class="no-comments">No comments yet. Be the first to share your thoughts.</div>'}
+        </div>
+        <div class="comment-form" id="comment-form-area">
+          ${user ? `
+            <form id="comment-form">
+              <div class="form-group">
+                <textarea id="comment-text" class="form-control" rows="3" placeholder="Share your thoughts on this lesson…" maxlength="500" required></textarea>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+                <label class="check-label" style="font-size:0.85rem">
+                  <input type="checkbox" id="comment-anon"> Comment anonymously
+                </label>
+                <button type="submit" class="btn btn-gold btn-sm">Post Comment</button>
+              </div>
+            </form>
+          ` : `
+            <p style="text-align:center;color:var(--muted);font-size:0.9rem">
+              <a href="#" onclick="openModal('auth-modal');return false" style="color:var(--teal);font-weight:600">Log in</a> to join the conversation.
+            </p>
+          `}
+        </div>
+      </div>
+
+      ${related.length ? `
+        <div style="margin-top:40px">
+          <h3 style="margin-bottom:20px">More ${m.label} Lessons</h3>
+          <div class="lessons-grid">
+            ${related.map(r => lessonCardHTML(r)).join('')}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+
+  document.querySelectorAll('.lesson-card').forEach(card => {
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', e => {
+      if (e.target.closest('.reaction-bar') || e.target.closest('.reaction-btn')) return;
+      window.location.href = `lesson.html?id=${card.dataset.id}`;
+    });
+  });
+
+  const commentForm = document.getElementById('comment-form');
+  if (commentForm) {
+    commentForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const text = document.getElementById('comment-text').value.trim();
+      const anon = document.getElementById('comment-anon').checked;
+      if (!text) return;
+      const result = Comments.create(currentLessonId, text, anon);
+      if (!result || result.error) return;
+      if (result.rejected) {
+        showToast('Comment blocked: ' + result.reasons.join('. '), 'error');
+        return;
+      }
+      const comment = result.comment;
+      if (result.flagged) {
+        showToast('Comment posted but flagged for review.', 'info');
+      }
+      const list = document.getElementById('comments-list');
+      const noComments = list.querySelector('.no-comments');
+      if (noComments) noComments.remove();
+      list.insertAdjacentHTML('beforeend', commentHTML(comment, true));
+      document.getElementById('comment-text').value = '';
+      document.getElementById('comment-anon').checked = false;
+      const count = Comments.byLesson(currentLessonId).length;
+      document.getElementById('comment-count').textContent = count;
+      document.getElementById('comment-count-header').textContent = count;
+      showToast('Comment posted!', 'success');
+    });
+  }
+
+  if (hasAdviceVideo) {
+    const container = document.getElementById('advice-video-container');
+    container.classList.remove('hidden');
+  }
+
+  highlightCommentFromUrl();
+}
+
+function confirmDeleteLesson() {
+  Lessons.delete(currentLessonId);
+  showToast('Lesson deleted.', 'success');
+  setTimeout(() => window.location.href = 'dashboard.html', 800);
+}
+
+function toggleHelpfulDetail(id) {
+  toggleReaction(id, 'helpful', document.querySelector(`#lesson-content .reaction-btn[data-key="helpful"]`));
+}
+
+function generateAdviceVideo() {
+  showToast('Generating advice video with scripture…', 'info');
+  setTimeout(() => {
+    AdviceVideo.generate(currentLessonId);
+    showToast('Advice video ready! Press Play to watch.', 'success');
+    const container = document.getElementById('advice-video-container');
+    container.classList.remove('hidden');
+    renderLesson(Lessons.byId(currentLessonId));
+  }, 1500);
+}
+
+function playAdviceVideo() {
+  const container = document.getElementById('advice-video-container');
+  container.classList.remove('hidden');
+  AdviceVideo.play(currentLessonId, 'advice-video-container');
+}
+</script>
+</body>
+</html>
